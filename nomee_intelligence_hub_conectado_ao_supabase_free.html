@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOMEE — Portal de Diagnóstico &amp; Inteligência de Clientes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            void: '#050507',
+            obsidian: '#0A0B0E',
+            carbon: '#0F1115',
+            graphite: '#15181F',
+            crimson: {
+              950: '#240609',
+              800: '#7F121B',
+              700: '#991B1B',
+              600: '#B91C1C',
+              500: '#DC2626'
+            }
+          },
+          fontFamily: {
+            display: ['Manrope', 'Inter', 'sans-serif'],
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --bg-void: #050507;
+      --border-hairline: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; }
+    @keyframes subtleFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    body {
+      background-color: var(--bg-void);
+      background-image:
+        radial-gradient(820px circle at 10% -15%, rgba(127, 18, 27, 0.09) 0%, transparent 55%),
+        radial-gradient(760px circle at 92% 110%, rgba(255, 255, 255, 0.025) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: #F4F4F5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4, .font-display {
+      font-family: 'Manrope', 'Inter', sans-serif;
+      letter-spacing: -0.025em;
+    }
+    .blood-line {
+      background: linear-gradient(90deg, transparent 0%, #7F121B 25%, #DC2626 50%, #7F121B 75%, transparent 100%);
+      background-size: 220% 100%;
+      animation: subtleFlow 9s linear infinite;
+    }
+    .surface-card {
+      background: linear-gradient(170deg, rgba(20, 23, 30, 0.94) 0%, rgba(10, 11, 14, 0.98) 100%);
+      border: 1px solid var(--border-hairline);
+      border-radius: 14px;
+      box-shadow: 0 20px 44px -18px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transition: border-color 0.2s ease;
+    }
+    .surface-card:hover { border-color: rgba(255, 255, 255, 0.14); }
+    .btn-primary {
+      background: #F4F4F5;
+      color: #09090B;
+      font-weight: 600;
+      border: 1px solid #FFFFFF;
+      border-radius: 9px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #FFFFFF;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px -6px rgba(255, 255, 255, 0.2);
+    }
+    .btn-blood {
+      background: linear-gradient(120deg, #6E0E17 0%, #991B1B 50%, #B91C1C 75%, #6E0E17 100%);
+      background-size: 220% 220%;
+      animation: subtleFlow 7s ease infinite;
+      color: #FFFFFF;
+      font-weight: 600;
+      border: 1px solid rgba(220, 38, 38, 0.4);
+      border-radius: 9px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-blood:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+    .btn-secondary {
+      background: #101218;
+      color: #E4E4E7;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 9px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #191C24; border-color: rgba(255, 255, 255, 0.22); color: #FFFFFF; }
+    .btn-danger-ghost {
+      background: rgba(153, 27, 27, 0.12);
+      color: #FCA5A5;
+      font-weight: 500;
+      border: 1px solid rgba(185, 28, 28, 0.3);
+      border-radius: 9px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-danger-ghost:hover:not(:disabled) { background: rgba(185, 28, 28, 0.24); color: #FFFFFF; }
+    .input-field {
+      width: 100%;
+      background: #07080B;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #FAFAFA;
+      padding: 10px 13px;
+      border-radius: 9px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .input-field:focus {
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+    }
+    .input-field:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 13px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #A1A1AA;
+      border: 1px solid transparent;
+      transition: all 0.18s ease;
+      cursor: pointer;
+    }
+    .nav-btn:hover { background: rgba(255, 255, 255, 0.04); color: #FAFAFA; }
+    .nav-btn.active {
+      background: rgba(255, 255, 255, 0.07);
+      color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.12);
+      border-left: 2px solid #DC2626;
+    }
+    .view-animate { animation: fadeUp 0.25s ease forwards; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #050507; }
+    ::-webkit-scrollbar-thumb { background: #27272A; border-radius: 999px; }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-crimson-700 selection:text-white">
+  <!-- Linha sutil REDLINE no topo -->
+  <div class="fixed top-0 left-0 right-0 h-[2px] blood-line z-50"></div>
+
+  <!-- Toast de notificações -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-[100] hidden max-w-md px-4 py-3 rounded-xl bg-carbon border border-white/15 shadow-2xl text-xs font-medium text-zinc-100"></div>
+
+  <!-- ======================================================================= -->
+  <!-- 1. LANDING PAGE EXECUTIVA + ÁREA DE ACESSO                              -->
+  <!-- ======================================================================= -->
+  <section id="landingScreen" class="min-h-screen flex flex-col justify-between max-w-7xl mx-auto px-5 sm:px-8 py-6">
+    <header class="flex items-center justify-between pb-5 border-b border-white/[0.07]">
+      <div class="flex items-center gap-3.5">
+        <div class="font-display font-extrabold tracking-[0.26em] text-lg text-white">NOMEE</div>
+        <span class="hidden sm:inline-block h-4 w-[1px] bg-white/15"></span>
+        <span class="hidden sm:inline-block text-[11px] uppercase tracking-[0.18em] text-zinc-400">Intelligence Hub • NOMEE EDGE</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="landingCloudBadge" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-medium bg-white/[0.04] border border-white/10 text-zinc-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse"></span> Conectando Supabase...
+        </span>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center py-10">
+      <!-- Copy Persuasiva e Cirúrgica -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-crimson-950/70 border border-crimson-700/40 text-[11px] uppercase tracking-[0.18em] text-red-200 font-semibold">
+          NOMEE EDGE • Competitive Advantage &amp; Value Capture
+        </div>
+        <h1 class="font-display text-3xl sm:text-5xl font-extrabold text-white leading-[1.12]">
+          Descubra onde sua empresa perde margem entre o que entrega, o que o mercado percebe e o que converte em resultado.
+        </h1>
+        <p class="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-2xl">
+          Um ambiente exclusivo para mapear sua operação com precisão cirúrgica, consolidar evidências em painéis executivos interativos e gerar seu <strong class="text-zinc-200">NOMEE Business Profile</strong> oficial em PDF — com isolamento total por cliente e conformidade LGPD.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+          <div class="surface-card p-4">
+            <div class="text-xs font-semibold text-white mb-1">Mapeamento Cirúrgico (7 Módulos)</div>
+            <p class="text-xs text-zinc-400 leading-relaxed">Estrutura completa da operação, economia, comercial, consumidor e posicionamento sem fricção.</p>
+          </div>
+          <div class="surface-card p-4">
+            <div class="text-xs font-semibold text-white mb-1">Visão Executiva Estilo Power BI</div>
+            <p class="text-xs text-zinc-400 leading-relaxed">Gráficos interativos de maturidade e lacunas visíveis na tela antes mesmo do download do PDF.</p>
+          </div>
+          <div class="surface-card p-4">
+            <div class="text-xs font-semibold text-white mb-1">Ambiente Isolado &amp; LGPD (24m)</div>
+            <p class="text-xs text-zinc-400 leading-relaxed">Cada empresa acessa exclusivamente seu portal dedicado via link privado, com registro de consentimento.</p>
+          </div>
+          <div class="surface-card p-4">
+            <div class="text-xs font-semibold text-white mb-1">Sincronização em Nuvem Real</div>
+            <p class="text-xs text-zinc-400 leading-relaxed">Dados salvos em tempo real no banco Supabase e prontos para emissão instantânea do PDF oficial.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de Login Seguro -->
+      <div class="lg:col-span-5">
+        <div class="surface-card p-7 sm:p-8 relative overflow-hidden">
+          <div id="portalLockBanner" class="hidden mb-5 px-3.5 py-2.5 rounded-lg bg-crimson-950/60 border border-crimson-700/40 text-xs text-red-100">
+            <strong>Portal Exclusivo do Cliente:</strong> acesso restrito à empresa vinculada a este link.
+          </div>
+
+          <div class="mb-6">
+            <div class="text-[11px] uppercase tracking-[0.18em] text-zinc-400 font-semibold mb-1">Área de Acesso</div>
+            <h2 id="loginHeading" class="font-display text-2xl font-bold text-white">Entrar na Plataforma</h2>
+            <p class="text-xs text-zinc-400 mt-1">Informe seu e-mail autorizado e PIN de acesso.</p>
+          </div>
+
+          <form id="loginForm" onsubmit="App.handleLogin(event)" class="space-y-4">
+            <div>
+              <label class="block text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-1.5">E-mail Corporativo</label>
+              <input id="loginEmail" type="email" required class="input-field" placeholder="nome@empresa.com.br" autocomplete="email">
+            </div>
+            <div>
+              <label class="block text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-1.5">PIN de Acesso</label>
+              <div class="relative">
+                <input id="loginPin" type="password" required class="input-field pr-20" placeholder="••••••" autocomplete="current-password">
+                <button type="button" id="btnTogglePin" onclick="App.togglePinVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-zinc-400 hover:text-white px-2 py-1 rounded bg-white/[0.05]">
+                  Mostrar
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3 text-sm mt-2">
+              Acessar Ambiente Seguro
+            </button>
+          </form>
+
+          <!-- Acesso discreto de demonstração (oculto automaticamente em links exclusivos de clientes) -->
+          <div id="demoAccessSection" class="mt-6 pt-5 border-t border-white/[0.07]">
+            <button type="button" onclick="document.getElementById('demoButtonsBox').classList.toggle('hidden')" class="text-[11px] text-zinc-500 hover:text-zinc-300 transition flex items-center justify-between w-full">
+              <span>Acesso de Demonstração (Apresentação)</span>
+              <span>▾</span>
+            </button>
+            <div id="demoButtonsBox" class="hidden mt-3 grid grid-cols-2 gap-2">
+              <button type="button" onclick="App.quickDemoLogin('admin')" class="btn-secondary py-2 px-3 text-xs">
+                Entrar como Admin
+              </button>
+              <button type="button" onclick="App.quickDemoLogin('client')" class="btn-secondary py-2 px-3 text-xs">
+                Entrar como Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="pt-5 border-t border-white/[0.07] flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500">
+      <span>NOMEE Company — Competitive Advantage &amp; Value Capture</span>
+      <span>Banco em Nuvem Supabase • Conformidade LGPD 24 meses</span>
+    </footer>
+  </section>
+
+  <!-- ======================================================================= -->
+  <!-- 2. PORTAL EXCLUSIVO DO CLIENTE + FORMULÁRIO 7 ETAPAS                    -->
+  <!-- ======================================================================= -->
+  <section id="clientShell" class="hidden min-h-screen flex-col">
+    <header class="sticky top-0 z-30 bg-void/90 backdrop-blur-xl border-b border-white/[0.08]">
+      <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="font-display font-extrabold tracking-[0.24em] text-base text-white">NOMEE</span>
+          <span class="h-4 w-[1px] bg-white/15"></span>
+          <span class="text-xs text-zinc-400">Portal Exclusivo do Cliente</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="clientCloudStatus" class="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+            Supabase Sincronizado
+          </span>
+          <span id="clientHeaderEmail" class="text-xs text-zinc-300 hidden md:inline"></span>
+          <button onclick="App.logout()" class="btn-secondary px-3 py-1.5 text-xs">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto px-5 sm:px-8 py-8 space-y-6 flex-1">
+      <!-- Banner Principal do Cliente -->
+      <div class="surface-card p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-5 border-l-2 border-l-crimson-600">
+        <div>
+          <div class="text-[11px] uppercase tracking-[0.16em] text-zinc-400 font-semibold mb-1" id="clientPortalMeta">ID • SEGMENTO</div>
+          <h1 id="clientCompanyTitle" class="font-display text-2xl sm:text-3xl font-bold text-white">Empresa</h1>
+          <p class="text-xs sm:text-sm text-zinc-400 mt-1.5 max-w-2xl">
+            Preencha seu diagnóstico empresarial em 7 etapas. Todas as respostas são salvas automaticamente na nuvem e consolidadas no seu painel visual e relatório PDF.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2.5 shrink-0">
+          <button id="btnClientStartForm" onclick="App.openClientForm()" class="btn-primary px-5 py-2.5 text-xs">
+            Iniciar / Continuar Diagnóstico
+          </button>
+          <button id="btnClientPreviewPdf" onclick="App.openPdfPreview(App.state.session.clientId)" class="btn-secondary px-4 py-2.5 text-xs hidden">
+            Visualizar &amp; Baixar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo Visual Interativo (Antes do PDF) -->
+      <div id="clientSummarySection" class="space-y-6 view-animate">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="surface-card p-5">
+            <div class="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Progresso do Diagnóstico</div>
+            <div id="clientKpiProgress" class="font-display text-2xl font-bold text-white mt-2">0%</div>
+            <div id="clientKpiStatusSub" class="text-xs text-zinc-400 mt-1">Em preenchimento</div>
+          </div>
+          <div class="surface-card p-5">
+            <div class="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Protocolo Oficial</div>
+            <div id="clientKpiProtocol" class="font-display text-xl font-bold text-white mt-2">PRT-2026-0001</div>
+            <div id="clientKpiFolderSub" class="text-xs text-zinc-400 mt-1 truncate">Pasta do Cliente</div>
+          </div>
+          <div class="surface-card p-5">
+            <div class="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Relatório Business Profile (PDF)</div>
+            <div id="clientKpiPdfState" class="font-display text-xl font-bold text-white mt-2">Aguardando Liberação</div>
+            <div id="clientKpiPdfSub" class="text-xs text-zinc-400 mt-1">Revisão da consultoria NOMEE</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-7 surface-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-white">Mapa de Maturidade dos 7 Módulos</h3>
+                <p class="text-[11px] text-zinc-400">Visão prévia da cobertura de informações declaradas antes do PDF final.</p>
+              </div>
+              <span class="text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-crimson-950/70 border border-crimson-700/40 text-red-200">REDLINE BI</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="clientRadarChart"></canvas>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 surface-card p-5">
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-white">Qualidade das Informações</h3>
+              <p class="text-[11px] text-zinc-400">Distribuição entre dados respondidos, marcados como "Não sei" e pendentes.</p>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="clientQualityChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulário Estruturado em 7 Etapas -->
+      <div id="clientFormSection" class="hidden surface-card p-6 sm:p-7 space-y-6 view-animate">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
+          <div>
+            <div class="text-[11px] uppercase tracking-[0.16em] text-zinc-400 font-semibold">Formulário Estruturado • 7 Módulos</div>
+            <h2 id="formStepTitle" class="font-display text-xl font-bold text-white mt-0.5">Etapa 1 de 7</h2>
+          </div>
+          <div class="flex items-center gap-3">
+            <span id="formSaveIndicator" class="text-[11px] text-emerald-400">Salvo automaticamente</span>
+            <button type="button" onclick="App.closeClientForm()" class="btn-secondary px-3 py-1.5 text-xs">Voltar ao Resumo</button>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso + Pills -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span id="formStepSub" class="text-zinc-400">Preencha os campos abaixo ou marque "Não sei" se não possuir o dado.</span>
+            <span id="formProgressPct" class="font-semibold text-white">14%</span>
+          </div>
+          <div class="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+            <div id="formProgressBar" class="h-full blood-line transition-all duration-300" style="width:14%"></div>
+          </div>
+          <div id="formStepPills" class="flex flex-wrap gap-1.5 pt-1"></div>
+        </div>
+
+        <!-- Campos Dinâmicos da Etapa -->
+        <div id="formFieldsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+        <!-- Bloco Especial da Etapa 7: Anexos + Termo LGPD -->
+        <div id="formStep7Extras" class="hidden space-y-4 pt-3 border-t border-white/[0.08]">
+          <div class="p-4 rounded-xl bg-void border border-dashed border-white/15">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-semibold text-white">Anexar Materiais Complementares (Opcional)</div>
+                <p class="text-[11px] text-zinc-400">Apresentação comercial, tabela de preços ou organograma (PDF, PNG, JPG, XLSX — máx. 5 MB).</p>
+              </div>
+              <label class="btn-secondary px-3.5 py-2 text-xs cursor-pointer inline-flex items-center justify-center">
+                + Selecionar Arquivo
+                <input id="formAttachmentInput" type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.csv,.docx" onchange="App.handleClientAttachment(event)">
+              </label>
+            </div>
+            <div id="formAttachmentsList" class="mt-3 space-y-1.5 text-xs text-zinc-400"></div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-void border border-white/10">
+            <div class="text-[11px] uppercase tracking-wider text-red-300 font-semibold mb-1.5">
+              Termo de Privacidade &amp; Consentimento LGPD (Retenção: 24 Meses)
+            </div>
+            <p class="text-xs text-zinc-400 leading-relaxed mb-3">
+              Declaro estar ciente e autorizo o armazenamento e tratamento das informações fornecidas exclusivamente para a elaboração do diagnóstico e relatório <strong class="text-zinc-200">NOMEE Business Profile</strong>, mantidos em ambiente isolado por até 24 meses, assegurados os direitos de acesso, correção e exclusão conforme a LGPD.
+            </p>
+            <label class="flex items-center gap-2.5 text-xs text-white cursor-pointer select-none">
+              <input id="formLgpdCheck" type="checkbox" onchange="App.handleLgpdToggle(this.checked)" class="w-4 h-4 accent-red-600 rounded">
+              <span>Li e aceito o Termo de Privacidade e Consentimento LGPD (24 meses).</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Navegação do Formulário -->
+        <div class="flex items-center justify-between pt-4 border-t border-white/[0.08]">
+          <button id="btnFormPrev" type="button" onclick="App.changeFormStep(-1)" class="btn-secondary px-4 py-2 text-xs">
+            Etapa Anterior
+          </button>
+          <div class="flex items-center gap-2.5">
+            <button id="btnFormNext" type="button" onclick="App.changeFormStep(1)" class="btn-primary px-5 py-2 text-xs">
+              Salvar e Avançar
+            </button>
+            <button id="btnFormSubmit" type="button" onclick="App.submitClientForm()" class="btn-blood px-5 py-2 text-xs hidden">
+              Concluir e Enviar Diagnóstico
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ======================================================================= -->
+  <!-- 3. PAINEL ADMINISTRATIVO (ESTILO POWER BI INTERATIVO + SUPABASE)        -->
+  <!-- ======================================================================= -->
+  <section id="adminShell" class="hidden min-h-screen flex-col">
+    <!-- Topbar Admin -->
+    <header class="sticky top-0 z-30 bg-void/90 backdrop-blur-xl border-b border-white/[0.08]">
+      <div class="px-5 sm:px-7 h-16 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="font-display font-extrabold tracking-[0.24em] text-base text-white">NOMEE</span>
+          <span class="h-4 w-[1px] bg-white/15"></span>
+          <span class="text-xs text-zinc-400 hidden sm:inline">Executive BI &amp; Gestão de Clientes</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button onclick="App.openModal('supabaseModal')" id="adminCloudStatusBtn" class="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-2">
+            <span id="adminCloudDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span id="adminCloudLabel">Supabase</span>
+          </button>
+          <button onclick="App.syncFromSupabase(true)" class="btn-secondary px-3 py-1.5 text-xs">Atualizar Nuvem</button>
+          <button onclick="App.openModal('newClientModal')" class="btn-primary px-3.5 py-1.5 text-xs">+ Novo Cliente</button>
+          <button onclick="App.logout()" class="btn-secondary px-3 py-1.5 text-xs">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex flex-col lg:flex-row flex-1">
+      <!-- Sidebar -->
+      <aside class="lg:w-60 bg-obsidian border-b lg:border-b-0 lg:border-r border-white/[0.07] p-4 flex flex-col justify-between shrink-0">
+        <div class="space-y-1">
+          <div class="px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-zinc-500 font-semibold">Navegação</div>
+          <button id="navBtn_dashboard" onclick="App.switchAdminTab('dashboard')" class="nav-btn active">
+            <span>Dashboard Power BI</span>
+          </button>
+          <button id="navBtn_clients" onclick="App.switchAdminTab('clients')" class="nav-btn">
+            <span>Clientes &amp; Pastas</span>
+            <span id="navCountClients" class="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300">0</span>
+          </button>
+          <button id="navBtn_reports" onclick="App.switchAdminTab('reports')" class="nav-btn">
+            <span>Relatórios PDF</span>
+            <span id="navCountReports" class="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300">0</span>
+          </button>
+        </div>
+
+        <div class="hidden lg:block pt-4 mt-4 border-t border-white/[0.07] px-2">
+          <div class="text-[11px] font-semibold text-white">Diretoria NOMEE</div>
+          <div class="text-[11px] text-zinc-500 truncate" id="adminSidebarEmail">admin@nomee.company</div>
+        </div>
+      </aside>
+
+      <!-- Área Principal Admin -->
+      <main class="flex-1 p-5 sm:p-7 space-y-6 overflow-x-hidden">
+        <!-- Alerta caso a tabela ainda não tenha sido criada no Supabase -->
+        <div id="supabaseSetupBanner" class="hidden p-4 rounded-xl bg-crimson-950/60 border border-crimson-700/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="text-xs text-red-100">
+            <strong>Falta apenas 1 passo no Supabase:</strong> a tabela <code class="px-1.5 py-0.5 rounded bg-black/50">nomee_clients</code> ainda não foi criada no seu projeto. Copie o SQL pronto e execute no <em>SQL Editor</em> do Supabase para ativar o salvamento na nuvem.
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="App.copySupabaseSql()" class="btn-primary px-3.5 py-1.5 text-xs">Copiar SQL (1 Clique)</button>
+            <button onclick="App.openModal('supabaseModal')" class="btn-secondary px-3 py-1.5 text-xs">Ver Instruções</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <h1 id="pageTitle" class="font-display text-2xl font-bold text-white">Dashboard Power BI — Carteira NOMEE</h1>
+            <p id="pageSubtitle" class="text-xs text-zinc-400 mt-1">Filtros cruzados em tempo real sobre os diagnósticos sincronizados no Supabase.</p>
+          </div>
+          <div id="activeFilterChip" class="hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-crimson-950/70 border border-crimson-700/40 text-xs text-red-100">
+            <span id="activeFilterLabel">Filtro ativo</span>
+            <button onclick="App.resetBiFilters()" class="underline hover:text-white ml-1">Limpar</button>
+          </div>
+        </div>
+
+        <!-- ================= ABA 1: DASHBOARD POWER BI ================= -->
+        <div id="tab_dashboard" class="space-y-6 view-animate">
+          <!-- Barra de Segmentadores (Slicers Power BI) -->
+          <div class="surface-card p-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div>
+                <label class="block text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1">Empresa (Drill-down)</label>
+                <select id="slicerClient" onchange="App.applyBiFilters()" class="input-field py-2 text-xs">
+                  <option value="">Todas as Empresas</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1">Segmento</label>
+                <select id="slicerSegment" onchange="App.applyBiFilters()" class="input-field py-2 text-xs">
+                  <option value="">Todos os Segmentos</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1">Status Formulário</label>
+                <select id="slicerStatus" onchange="App.applyBiFilters()" class="input-field py-2 text-xs">
+                  <option value="">Todos os Status</option>
+                  <option value="RASCUNHO">Em Rascunho</option>
+                  <option value="ENVIADO">Concluído / Enviado</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1">Liberação PDF</label>
+                <select id="slicerPdf" onchange="App.applyBiFilters()" class="input-field py-2 text-xs">
+                  <option value="">Todos</option>
+                  <option value="released">PDF Liberado</option>
+                  <option value="pending">Aguardando Liberação</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-1">Busca Rápida</label>
+                <input id="slicerSearch" type="text" oninput="App.applyBiFilters()" class="input-field py-2 text-xs" placeholder="Cliente, pasta ou protocolo...">
+              </div>
+            </div>
+          </div>
+
+          <!-- KPIs Executivos -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="surface-card p-5">
+              <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Clientes no Recorte</div>
+              <div id="kpiTotalClients" class="font-display text-3xl font-extrabold text-white mt-1.5">0</div>
+              <div class="text-[11px] text-zinc-400 mt-1">Pastas individuais ativas</div>
+            </div>
+            <div class="surface-card p-5">
+              <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Diagnósticos Concluídos</div>
+              <div id="kpiSubmitted" class="font-display text-3xl font-extrabold text-white mt-1.5">0</div>
+              <div id="kpiSubmittedPct" class="text-[11px] text-emerald-400 mt-1">0% da carteira</div>
+            </div>
+            <div class="surface-card p-5">
+              <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Preenchimento Médio</div>
+              <div id="kpiAvgCompletion" class="font-display text-3xl font-extrabold text-white mt-1.5">0%</div>
+              <div class="text-[11px] text-zinc-400 mt-1">Média dos 7 módulos</div>
+            </div>
+            <div class="surface-card p-5 border-l-2 border-l-crimson-600">
+              <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">PDFs Liberados</div>
+              <div id="kpiReleased" class="font-display text-3xl font-extrabold text-white mt-1.5">0</div>
+              <div id="kpiPendingSub" class="text-[11px] text-red-300 mt-1">0 aguardando revisão</div>
+            </div>
+          </div>
+
+          <!-- 4 Gráficos Interativos Power BI -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-6 surface-card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-white">Radar de Maturidade (7 Módulos)</h3>
+                  <p class="text-[11px] text-zinc-400">Cobertura média das dimensões estratégicas no recorte atual.</p>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-white/[0.05] text-zinc-300">Interativo</span>
+              </div>
+              <div class="h-64 relative"><canvas id="biRadarChart"></canvas></div>
+            </div>
+
+            <div class="lg:col-span-6 surface-card p-5">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-white">Ranking de Preenchimento por Empresa</h3>
+                  <p class="text-[11px] text-zinc-400">Clique em uma barra para isolar o cliente no dashboard.</p>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-crimson-950/70 text-red-200 border border-crimson-700/30">Clique p/ Filtrar</span>
+              </div>
+              <div class="h-64 relative"><canvas id="biRankingChart"></canvas></div>
+            </div>
+
+            <div class="lg:col-span-7 surface-card p-5">
+              <div class="mb-3">
+                <h3 class="text-sm font-semibold text-white">Qualidade dos Dados por Empresa</h3>
+                <p class="text-[11px] text-zinc-400">Proporção de campos respondidos, marcados como "Não sei" e pendentes.</p>
+              </div>
+              <div class="h-64 relative"><canvas id="biQualityChart"></canvas></div>
+            </div>
+
+            <div class="lg:col-span-5 surface-card p-5">
+              <div class="mb-3">
+                <h3 class="text-sm font-semibold text-white">Funil de Governança</h3>
+                <p class="text-[11px] text-zinc-400">Clique em uma fatia para filtrar o status.</p>
+              </div>
+              <div class="h-64 relative"><canvas id="biFunnelChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= ABA 2: CLIENTES & PASTAS ================= -->
+        <div id="tab_clients" class="hidden space-y-5 view-animate">
+          <div class="surface-card overflow-hidden">
+            <div class="p-4 border-b border-white/[0.07] flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-semibold text-white">Carteira de Clientes &amp; Pastas Individuais</h3>
+                <p class="text-[11px] text-zinc-400">Cada registro segue o padrão <strong>Nome do Cliente - Nome da Empresa</strong> com link exclusivo de acesso.</p>
+              </div>
+              <button onclick="App.openModal('newClientModal')" class="btn-primary px-4 py-2 text-xs">+ Cadastrar Cliente</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-carbon/80 text-[10px] uppercase tracking-wider text-zinc-500 border-b border-white/[0.07]">
+                    <th class="py-3 px-4">Pasta (Cliente - Empresa)</th>
+                    <th class="py-3 px-4">Acesso Portal</th>
+                    <th class="py-3 px-4">Progresso</th>
+                    <th class="py-3 px-4">Status / PDF</th>
+                    <th class="py-3 px-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="adminClientsTableBody" class="divide-y divide-white/[0.05] text-xs"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= ABA 3: RELATÓRIOS PDF ================= -->
+        <div id="tab_reports" class="hidden space-y-5 view-animate">
+          <div class="surface-card overflow-hidden">
+            <div class="p-4 border-b border-white/[0.07]">
+              <h3 class="text-sm font-semibold text-white">Central de Relatórios — NOMEE Business Profile (PDF)</h3>
+              <p class="text-[11px] text-zinc-400">Pré-visualize, baixe o PDF oficial formatado em A4 e controle a liberação no Portal do Cliente.</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-carbon/80 text-[10px] uppercase tracking-wider text-zinc-500 border-b border-white/[0.07]">
+                    <th class="py-3 px-4">Protocolo</th>
+                    <th class="py-3 px-4">Pasta (Cliente - Empresa)</th>
+                    <th class="py-3 px-4">Conclusão</th>
+                    <th class="py-3 px-4">LGPD</th>
+                    <th class="py-3 px-4">Portal do Cliente</th>
+                    <th class="py-3 px-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="adminReportsTableBody" class="divide-y divide-white/[0.05] text-xs"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- ======================================================================= -->
+  <!-- MODAIS                                                                  -->
+  <!-- ======================================================================= -->
+
+  <!-- Modal: Novo Cliente -->
+  <div id="newClientModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="surface-card w-full max-w-lg overflow-hidden">
+      <div class="px-6 py-4 bg-carbon border-b border-white/[0.08] flex items-center justify-between">
+        <div>
+          <h3 class="font-display text-base font-bold text-white">Cadastrar Novo Cliente</h3>
+          <p class="text-[11px] text-zinc-400">Cria a pasta <em>Nome do Cliente - Nome da Empresa</em> e sincroniza no Supabase.</p>
+        </div>
+        <button onclick="App.closeModal('newClientModal')" class="text-zinc-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <form onsubmit="App.createClient(event)" class="p-6 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Nome do Cliente (Responsável) *</label>
+            <input id="ncContactName" type="text" required class="input-field" placeholder="Ex: Ricardo Almeida">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Nome da Empresa *</label>
+            <input id="ncCompanyName" type="text" required class="input-field" placeholder="Ex: Vértice Engenharia Ltda">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">E-mail de Acesso ao Portal *</label>
+            <input id="ncEmail" type="email" required class="input-field" placeholder="cliente@empresa.com.br">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">PIN de Acesso *</label>
+            <input id="ncPin" type="text" required value="123456" class="input-field" placeholder="6 dígitos">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Segmento *</label>
+            <input id="ncSegment" type="text" required class="input-field" placeholder="Ex: Engenharia B2B">
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Cidade / UF</label>
+            <input id="ncLocation" type="text" class="input-field" placeholder="Ex: São Paulo - SP">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2.5 pt-2">
+          <button type="button" onclick="App.closeModal('newClientModal')" class="btn-secondary px-4 py-2 text-xs">Cancelar</button>
+          <button type="submit" class="btn-primary px-5 py-2 text-xs">Salvar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Exclusão de Cliente -->
+  <div id="deleteClientModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="surface-card w-full max-w-md overflow-hidden">
+      <div class="px-6 py-4 bg-carbon border-b border-white/[0.08]">
+        <h3 class="font-display text-base font-bold text-white">Excluir Cliente</h3>
+      </div>
+      <div class="p-6 space-y-3">
+        <p id="deleteModalText" class="text-xs text-zinc-300 leading-relaxed"></p>
+        <p class="text-[11px] text-red-300">Esta ação remove permanentemente o cliente, suas respostas e o registro no Supabase.</p>
+      </div>
+      <div class="px-6 py-4 bg-carbon border-t border-white/[0.08] flex justify-end gap-2.5">
+        <button onclick="App.closeModal('deleteClientModal')" class="btn-secondary px-4 py-2 text-xs">Cancelar</button>
+        <button onclick="App.confirmDeleteClient()" class="btn-blood px-4 py-2 text-xs">Confirmar Exclusão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Pré-visualização Executiva + Download PDF -->
+  <div id="pdfPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+    <div class="surface-card w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 bg-carbon border-b border-white/[0.08] flex items-center justify-between gap-3">
+        <div>
+          <h3 class="font-display text-base font-bold text-white">Pré-visualização — NOMEE Business Profile (PDF)</h3>
+          <p id="pdfPreviewSubtitle" class="text-[11px] text-zinc-400">Documento oficial pronto para download em A4</p>
+        </div>
+        <button onclick="App.closeModal('pdfPreviewModal')" class="text-zinc-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div id="pdfPreviewBody" class="p-6 overflow-y-auto flex-1 bg-zinc-100 text-zinc-900"></div>
+      <div class="px-6 py-4 bg-carbon border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
+        <span class="text-[11px] text-zinc-400">Arquivo gerado localmente em PDF vetorial (jsPDF A4).</span>
+        <div class="flex items-center gap-2.5">
+          <button onclick="App.closeModal('pdfPreviewModal')" class="btn-secondary px-4 py-2 text-xs">Fechar</button>
+          <button onclick="App.downloadOfficialPdf()" class="btn-primary px-5 py-2 text-xs">Baixar PDF Oficial</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Status e Configuração Supabase Free -->
+  <div id="supabaseModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="surface-card w-full max-w-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-carbon border-b border-white/[0.08] flex items-center justify-between">
+        <div>
+          <h3 class="font-display text-base font-bold text-white">Conexão Supabase Free (Banco em Nuvem)</h3>
+          <p class="text-[11px] text-zinc-400">Projeto conectado: <span class="text-zinc-200">lyjcwvhdqcemfycyqjwm.supabase.co</span></p>
+        </div>
+        <button onclick="App.closeModal('supabaseModal')" class="text-zinc-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <div id="supabaseModalStatusBox" class="p-3.5 rounded-xl bg-void border border-white/10 text-zinc-300">
+          Verificando conexão...
+        </div>
+        <div>
+          <div class="font-semibold text-white mb-1.5">Passo único para ativar a tabela no seu Supabase:</div>
+          <ol class="list-decimal list-inside space-y-1 text-zinc-400 mb-3">
+            <li>Abra o <strong class="text-zinc-200">SQL Editor</strong> no painel do seu projeto Supabase.</li>
+            <li>Clique em <strong class="text-zinc-200">Copiar SQL da Tabela</strong> abaixo, cole no editor e clique em <strong class="text-zinc-200">Run</strong>.</li>
+            <li>Volte aqui e clique em <strong class="text-zinc-200">Testar &amp; Sincronizar</strong>.</li>
+          </ol>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="App.copySupabaseSql()" class="btn-primary px-4 py-2 text-xs">Copiar SQL da Tabela</button>
+            <button onclick="App.syncFromSupabase(true)" class="btn-secondary px-4 py-2 text-xs">Testar &amp; Sincronizar</button>
+            <button onclick="App.pushAllLocalToSupabase()" class="btn-secondary px-4 py-2 text-xs">Enviar Dados Locais p/ Nuvem</button>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 bg-carbon border-t border-white/[0.08] flex justify-end">
+        <button onclick="App.closeModal('supabaseModal')" class="btn-secondary px-4 py-2 text-xs">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- LÓGICA DA APLICAÇÃO + CONEXÃO REAL SUPABASE                             -->
+  <!-- ======================================================================= -->
+  <script>
+    // Apenas URL e Publishable Key no navegador (NUNCA incluir SUPABASE_SECRET_KEY no frontend)
+    const SUPABASE_CONFIG = {
+      url: 'https://lyjcwvhdqcemfycyqjwm.supabase.co',
+      publishableKey: 'sb_publishable_Pz4ssieNW7iaNaKM9KCnOg_HJUHAeed',
+      table: 'nomee_clients'
+    };
+
+    const SUPABASE_SQL_SNIPPET = `create table if not exists public.nomee_clients (
+  id text primary key,
+  folder_name text not null,
+  company_name text not null,
+  contact_name text not null,
+  contact_role text default '',
+  contact_email text not null,
+  portal_pin text not null default '123456',
+  segment text not null default 'Serviços B2B',
+  location text default '',
+  cnpj text default '',
+  protocol text not null,
+  intake_status text not null default 'RASCUNHO',
+  current_step integer not null default 1,
+  pdf_released boolean not null default false,
+  lgpd_accepted boolean not null default false,
+  lgpd_accepted_at text default '',
+  submitted_at text default '',
+  answers jsonb not null default '{}'::jsonb,
+  dont_know jsonb not null default '{}'::jsonb,
+  attachments jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.nomee_clients enable row level security;
+drop policy if exists "nomee_public_read" on public.nomee_clients;
+create policy "nomee_public_read" on public.nomee_clients for select using (true);
+drop policy if exists "nomee_public_insert" on public.nomee_clients;
+create policy "nomee_public_insert" on public.nomee_clients for insert with check (true);
+drop policy if exists "nomee_public_update" on public.nomee_clients;
+create policy "nomee_public_update" on public.nomee_clients for update using (true) with check (true);
+drop policy if exists "nomee_public_delete" on public.nomee_clients;
+create policy "nomee_public_delete" on public.nomee_clients for delete using (true);`;
+
+    const App = {
+      sb: null,
+      saveTimer: null,
+      charts: {},
+      state: {
+        cloudConnected: false,
+        cloudError: '',
+        lockedClientId: null,
+        session: null,
+        activeAdminTab: 'dashboard',
+        previewClientId: null,
+        deletingClientId: null,
+        clients: []
+      },
+
+      ADMIN_ACCOUNT: {
+        email: 'admin@nomee.company',
+        pin: '990011',
+        name: 'Diretoria NOMEE'
+      },
+
+      FORM_MODULES: [
+        {
+          step: 1,
+          short: 'Identificação',
+          title: 'Módulo 1 — Identificação da Empresa',
+          fields: [
+            { key: 'm1_company', label: 'Razão Social / Nome Comercial', type: 'text', required: true },
+            { key: 'm1_cnpj', label: 'CNPJ', type: 'text', optionalDk: true },
+            { key: 'm1_segment', label: 'Segmento de Atuação', type: 'text', required: true },
+            { key: 'm1_location', label: 'Cidade / Estado', type: 'text', required: true },
+            { key: 'm1_website', label: 'Site Oficial', type: 'text', optionalDk: true },
+            { key: 'm1_social', label: 'Redes Sociais (Instagram / LinkedIn)', type: 'text', optionalDk: true },
+            { key: 'm1_contact', label: 'Nome do Responsável', type: 'text', required: true },
+            { key: 'm1_market_time', label: 'Tempo de Mercado', type: 'text', optionalDk: true }
+          ]
+        },
+        {
+          step: 2,
+          short: 'Modelo',
+          title: 'Módulo 2 — Modelo de Negócio e Operação',
+          fields: [
+            { key: 'm2_what_sells', label: 'O que a empresa entrega hoje?', type: 'textarea', optionalDk: true },
+            { key: 'm2_who_buys', label: 'Perfil do cliente contratante', type: 'textarea', optionalDk: true },
+            { key: 'm2_pricing_model', label: 'Modelo de cobrança (projeto, recorrência, hora)', type: 'text', optionalDk: true },
+            { key: 'm2_team_size', label: 'Tamanho da equipe operacional', type: 'text', optionalDk: true },
+            { key: 'm2_capacity', label: 'Capacidade atual de atendimento', type: 'text', optionalDk: true },
+            { key: 'm2_recurrence', label: 'Percentual de receita recorrente', type: 'text', optionalDk: true }
+          ]
+        },
+        {
+          step: 3,
+          short: 'Economia',
+          title: 'Módulo 3 — Inteligência Econômica',
+          fields: [
+            { key: 'm3_revenue', label: 'Faixa de faturamento mensal', type: 'text', optionalDk: true },
+            { key: 'm3_ticket', label: 'Ticket médio por contrato', type: 'text', optionalDk: true },
+            { key: 'm3_active_clients', label: 'Número de clientes ativos', type: 'text', optionalDk: true },
+            { key: 'm3_best_margin', label: 'Serviços mais rentáveis', type: 'text', optionalDk: true },
+            { key: 'm3_margin', label: 'Margem líquida conhecida', type: 'text', optionalDk: true },
+            { key: 'm3_idle', label: 'Capacidade ociosa ou gargalo', type: 'text', optionalDk: true }
+          ]
+        },
+        {
+          step: 4,
+          short: 'Comercial',
+          title: 'Módulo 4 — Comercial e Aquisição',
+          fields: [
+            { key: 'm4_channels', label: 'Principais canais de aquisição', type: 'text', optionalDk: true },
+            { key: 'm4_process', label: 'Existe processo comercial documentado?', type: 'text', optionalDk: true },
+            { key: 'm4_leads_month', label: 'Oportunidades geradas por mês', type: 'text', optionalDk: true },
+            { key: 'm4_conversion', label: 'Taxa média de conversão', type: 'text', optionalDk: true },
+            { key: 'm4_cycle', label: 'Ciclo médio de fechamento', type: 'text', optionalDk: true },
+            { key: 'm4_objections', label: 'Objeções comerciais mais frequentes', type: 'textarea', optionalDk: true }
+          ]
+        },
+        {
+          step: 5,
+          short: 'Consumidor',
+          title: 'Módulo 5 — Comportamento do Consumidor',
+          fields: [
+            { key: 'm5_decisor', label: 'Quem decide a compra?', type: 'text', optionalDk: true },
+            { key: 'm5_pain', label: 'Dor principal que busca resolver', type: 'textarea', optionalDk: true },
+            { key: 'm5_why_wins', label: 'Por que escolhe sua empresa?', type: 'textarea', optionalDk: true },
+            { key: 'm5_why_loses', label: 'Por que desiste ou fecha com concorrente?', type: 'textarea', optionalDk: true },
+            { key: 'm5_repurchase', label: 'Taxa de recompra ou indicação', type: 'text', optionalDk: true }
+          ]
+        },
+        {
+          step: 6,
+          short: 'Oferta',
+          title: 'Módulo 6 — Oferta e Posicionamento',
+          fields: [
+            { key: 'm6_main_offer', label: 'Descrição da oferta principal', type: 'textarea', optionalDk: true },
+            { key: 'm6_differentials', label: 'Diferenciais declarados', type: 'textarea', optionalDk: true },
+            { key: 'm6_competitors', label: 'Principais concorrentes diretos', type: 'text', optionalDk: true },
+            { key: 'm6_price_just', label: 'Como o preço é justificado na proposta?', type: 'text', optionalDk: true },
+            { key: 'm6_desired', label: 'Como deseja ser percebida no mercado?', type: 'textarea', optionalDk: true }
+          ]
+        },
+        {
+          step: 7,
+          short: 'Objetivos',
+          title: 'Módulo 7 — Prioridades de 90 Dias, Anexos & LGPD',
+          fields: [
+            { key: 'm7_goal_90d', label: 'Principal meta para os próximos 90 dias', type: 'textarea', optionalDk: true },
+            { key: 'm7_concern', label: 'Maior preocupação estratégica atual', type: 'textarea', optionalDk: true },
+            { key: 'm7_tried', label: 'O que já foi tentado sem resultado?', type: 'textarea', optionalDk: true },
+            { key: 'm7_changes', label: 'Mudanças previstas no curto prazo', type: 'textarea', optionalDk: true }
+          ]
+        }
+      ],
+
+      getSeedClients() {
+        return [
+          {
+            id: 'NOM-0001',
+            folder_name: 'Ricardo Almeida - Vértice Engenharia & Projetos Ltda',
+            company_name: 'Vértice Engenharia & Projetos Ltda',
+            contact_name: 'Ricardo Almeida',
+            contact_role: 'Sócio Diretor',
+            contact_email: 'cliente@vertice.com.br',
+            portal_pin: '123456',
+            segment: 'Engenharia Consultiva B2B',
+            location: 'São Paulo - SP',
+            cnpj: '28.451.902/0001-44',
+            protocol: 'PRT-2026-0001',
+            intake_status: 'ENVIADO',
+            current_step: 7,
+            pdf_released: true,
+            lgpd_accepted: true,
+            lgpd_accepted_at: '2026-11-18T14:20:00-03:00',
+            submitted_at: '2026-11-18T14:22:00-03:00',
+            answers: {
+              m1_company: 'Vértice Engenharia & Projetos Ltda',
+              m1_cnpj: '28.451.902/0001-44',
+              m1_segment: 'Engenharia Consultiva B2B',
+              m1_location: 'São Paulo - SP',
+              m1_website: 'https://verticeengenharia.com.br',
+              m1_social: '@vertice.engenharia',
+              m1_contact: 'Ricardo Almeida',
+              m1_market_time: '9 anos',
+              m2_what_sells: 'Projetos estruturais industriais, laudos técnicos e acompanhamento de obras de médio e grande porte.',
+              m2_who_buys: 'Indústrias farmacêuticas, alimentícias e galpões logísticos.',
+              m2_pricing_model: 'Escopo fechado por projeto + aditivos',
+              m2_team_size: '18 engenheiros e projetistas',
+              m2_capacity: '12 projetos simultâneos (atualmente em 85%)',
+              m2_recurrence: '15% em contratos de manutenção preventiva',
+              m3_revenue: 'R$ 320.000 a R$ 450.000/mês',
+              m3_ticket: 'R$ 68.000 por projeto',
+              m3_active_clients: '14 contas ativas',
+              m3_best_margin: 'Laudos de conformidade e retrofit industrial',
+              m3_margin: '22% estimada',
+              m4_channels: 'Indicação de clientes atuais (75%) e licitações privadas (25%)',
+              m4_process: 'Parcial — propostas montadas pelos sócios sem CRM formal',
+              m4_leads_month: '10 a 14 oportunidades/mês',
+              m4_conversion: '24%',
+              m4_cycle: '45 a 60 dias',
+              m4_objections: 'Comparação direta de preço com escritórios menores sem seguro técnico.',
+              m5_decisor: 'Diretor Industrial ou Gerente de Engenharia',
+              m5_pain: 'Atraso de cronograma e retrabalho em obra por projetos mal compatibilizados.',
+              m5_why_wins: 'Rigor técnico, entrega em BIM e histórico zero de embargos.',
+              m5_why_loses: 'Preço percebido 20% acima da média sem clareza do risco evitado.',
+              m6_main_offer: 'Engenharia Integrada BIM com Garantia de Compatibilização',
+              m6_differentials: 'Equipe sênior dedicada, SLA de revisão em 48h e seguro de responsabilidade.',
+              m6_competitors: 'Concorrentes regionais de baixo custo e grandes consultorias multinacionais.',
+              m6_price_just: 'Planilha de horas técnicas (gera discussão de hora-homem).',
+              m6_desired: 'Referência técnica premium em engenharia industrial no Sudeste.',
+              m7_goal_90d: 'Elevar margem líquida de 22% para 30% e estruturar receita recorrente.',
+              m7_concern: 'Dependência dos sócios no fechamento e erosão de preço na negociação.',
+              m7_tried: 'Campanhas pontuais no Google Ads sem filtro de porte.',
+              m7_changes: 'Reestruturação de proposta comercial e pacotes de acompanhamento anual.'
+            },
+            dont_know: { m3_idle: true, m5_repurchase: true },
+            attachments: [{ name: 'Apresentacao_Institucional_Vertice_2026.pdf', sizeKb: 1420 }]
+          },
+          {
+            id: 'NOM-0002',
+            folder_name: 'Camila Torres - Solaris Clínica Integrada',
+            company_name: 'Solaris Clínica Integrada',
+            contact_name: 'Camila Torres',
+            contact_role: 'Fundadora',
+            contact_email: 'camila@solarisclinica.com.br',
+            portal_pin: '654321',
+            segment: 'Saúde & Estética Premium',
+            location: 'Curitiba - PR',
+            cnpj: '34.118.774/0001-19',
+            protocol: 'PRT-2026-0002',
+            intake_status: 'RASCUNHO',
+            current_step: 4,
+            pdf_released: false,
+            lgpd_accepted: false,
+            lgpd_accepted_at: '',
+            submitted_at: '',
+            answers: {
+              m1_company: 'Solaris Clínica Integrada',
+              m1_segment: 'Saúde & Estética Premium',
+              m1_location: 'Curitiba - PR',
+              m1_contact: 'Camila Torres',
+              m1_market_time: '5 anos',
+              m2_what_sells: 'Protocolos dermatológicos e medicina preventiva personalizada.',
+              m2_who_buys: 'Público classe A/B+ entre 32 e 58 anos.',
+              m2_pricing_model: 'Pacotes trimestrais e consultas avulsas',
+              m3_revenue: 'R$ 180.000/mês',
+              m3_ticket: 'R$ 3.800 por protocolo'
+            },
+            dont_know: { m3_margin: true, m4_conversion: true },
+            attachments: []
+          }
+        ];
+      },
+
+      async init() {
+        // Inicializa cliente Supabase
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+          this.sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey);
+        }
+
+        // Verifica URL travada para portal exclusivo do cliente (?portal=cliente&c=NOM-XXXX)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('portal') === 'cliente' && params.get('c')) {
+          this.state.lockedClientId = params.get('c').trim().toUpperCase();
+          document.getElementById('portalLockBanner').classList.remove('hidden');
+          document.getElementById('demoAccessSection').classList.add('hidden');
+          document.getElementById('loginHeading').textContent = 'Portal do Cliente';
+        }
+
+        // Carrega cache local imediato e depois sincroniza com Supabase
+        this.loadLocalCache();
+        await this.syncFromSupabase(false);
+      },
+
+      loadLocalCache() {
+        try {
+          const raw = localStorage.getItem('nomee_supabase_cache_v1');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) {
+              this.state.clients = parsed;
+              return;
+            }
+          }
+        } catch (e) {}
+        this.state.clients = this.getSeedClients();
+      },
+
+      saveLocalCache() {
+        try {
+          localStorage.setItem('nomee_supabase_cache_v1', JSON.stringify(this.state.clients));
+        } catch (e) {}
+      },
+
+      updateCloudBadges(connected, detailText) {
+        this.state.cloudConnected = connected;
+        this.state.cloudError = connected ? '' : (detailText || '');
+
+        const landingBadge = document.getElementById('landingCloudBadge');
+        if (landingBadge) {
+          landingBadge.innerHTML = connected
+            ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Supabase Conectado'
+            : '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Modo Local (Criar tabela no Supabase)';
+        }
+
+        const adminDot = document.getElementById('adminCloudDot');
+        const adminLabel = document.getElementById('adminCloudLabel');
+        if (adminDot && adminLabel) {
+          adminDot.className = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-400' : 'bg-amber-400');
+          adminLabel.textContent = connected ? 'Supabase Online' : 'Configurar Tabela';
+        }
+
+        const setupBanner = document.getElementById('supabaseSetupBanner');
+        if (setupBanner) {
+          setupBanner.classList.toggle('hidden', connected);
+        }
+
+        const modalStatus = document.getElementById('supabaseModalStatusBox');
+        if (modalStatus) {
+          modalStatus.innerHTML = connected
+            ? '<strong class="text-emerald-400">Conectado com sucesso!</strong> Todos os cadastros, respostas do formulário e exclusões estão sincronizando em tempo real na tabela <code>public.nomee_clients</code>.'
+            : '<strong class="text-amber-300">Tabela ainda não encontrada no Supabase.</strong><br><span class="text-zinc-400">Detalhe: ' + (detailText || 'Execute o SQL abaixo no SQL Editor do Supabase.') + '</span>';
+        }
+      },
+
+      async syncFromSupabase(showToast) {
+        if (!this.sb) {
+          this.updateCloudBadges(false, 'Biblioteca Supabase não carregou.');
+          return;
+        }
+        try {
+          const { data, error } = await this.sb
+            .from(SUPABASE_CONFIG.table)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          this.updateCloudBadges(true, '');
+          if (Array.isArray(data) && data.length > 0) {
+            this.state.clients = data.map(row => this.normalizeClientRow(row));
+            this.saveLocalCache();
+          } else if (Array.isArray(data) && data.length === 0 && this.state.clients.length > 0) {
+            // Tabela existe mas está vazia: envia seed inicial para já aparecer na nuvem
+            await this.pushAllLocalToSupabase(true);
+          }
+
+          if (this.state.session) {
+            if (this.state.session.role === 'admin') this.renderAdminAll();
+            else this.renderClientPortal();
+          }
+          if (showToast) this.toast('Dados sincronizados com o Supabase!');
+        } catch (err) {
+          this.updateCloudBadges(false, err && err.message ? err.message : 'Tabela nomee_clients não criada.');
+          if (showToast) this.toast('Tabela ainda não criada no Supabase. Use "Copiar SQL da Tabela".', true);
+        }
+      },
+
+      normalizeClientRow(row) {
+        const contact = row.contact_name || 'Cliente';
+        const company = row.company_name || 'Empresa';
+        return {
+          id: row.id,
+          folder_name: row.folder_name || `${contact} - ${company}`,
+          company_name: company,
+          contact_name: contact,
+          contact_role: row.contact_role || '',
+          contact_email: (row.contact_email || '').toLowerCase(),
+          portal_pin: String(row.portal_pin || '123456'),
+          segment: row.segment || 'Serviços B2B',
+          location: row.location || '',
+          cnpj: row.cnpj || '',
+          protocol: row.protocol || 'PRT-2026-0001',
+          intake_status: row.intake_status || 'RASCUNHO',
+          current_step: Number(row.current_step) || 1,
+          pdf_released: Boolean(row.pdf_released),
+          lgpd_accepted: Boolean(row.lgpd_accepted),
+          lgpd_accepted_at: row.lgpd_accepted_at || '',
+          submitted_at: row.submitted_at || '',
+          answers: row.answers && typeof row.answers === 'object' ? row.answers : {},
+          dont_know: row.dont_know && typeof row.dont_know === 'object' ? row.dont_know : {},
+          attachments: Array.isArray(row.attachments) ? row.attachments : []
+        };
+      },
+
+      async upsertClientToSupabase(client) {
+        this.saveLocalCache();
+        if (!this.sb) return false;
+        try {
+          const payload = {
+            ...this.normalizeClientRow(client),
+            updated_at: new Date().toISOString()
+          };
+          const { error } = await this.sb
+            .from(SUPABASE_CONFIG.table)
+            .upsert(payload, { onConflict: 'id' });
+          if (error) throw error;
+          this.updateCloudBadges(true, '');
+          return true;
+        } catch (err) {
+          this.updateCloudBadges(false, err.message);
+          return false;
+        }
+      },
+
+      async deleteClientFromSupabase(clientId) {
+        this.saveLocalCache();
+        if (!this.sb) return false;
+        try {
+          const { error } = await this.sb
+            .from(SUPABASE_CONFIG.table)
+            .delete()
+            .eq('id', clientId);
+          if (error) throw error;
+          this.updateCloudBadges(true, '');
+          return true;
+        } catch (err) {
+          this.updateCloudBadges(false, err.message);
+          return false;
+        }
+      },
+
+      async pushAllLocalToSupabase(silent) {
+        if (!this.sb) return;
+        let okCount = 0;
+        for (const c of this.state.clients) {
+          const ok = await this.upsertClientToSupabase(c);
+          if (ok) okCount++;
+        }
+        if (!silent) {
+          this.toast(okCount > 0 ? `${okCount} registro(s) enviados para o Supabase!` : 'Crie a tabela primeiro usando o SQL.', okCount === 0);
+        }
+      },
+
+      copySupabaseSql() {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(SUPABASE_SQL_SNIPPET).then(() => {
+            this.toast('SQL copiado! Cole no SQL Editor do Supabase e clique em Run.');
+          });
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = SUPABASE_SQL_SNIPPET;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          this.toast('SQL copiado! Cole no SQL Editor do Supabase e clique em Run.');
+        }
+      },
+
+      // =====================================================================
+      // AUTENTICAÇÃO & SEGURANÇA DE PORTAL
+      // =====================================================================
+      togglePinVisibility() {
+        const inp = document.getElementById('loginPin');
+        const btn = document.getElementById('btnTogglePin');
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          btn.textContent = 'Ocultar';
+        } else {
+          inp.type = 'password';
+          btn.textContent = 'Mostrar';
+        }
+      },
+
+      quickDemoLogin(type) {
+        if (this.state.lockedClientId) return;
+        if (type === 'admin') {
+          document.getElementById('loginEmail').value = this.ADMIN_ACCOUNT.email;
+          document.getElementById('loginPin').value = this.ADMIN_ACCOUNT.pin;
+        } else {
+          const demoClient = this.state.clients[0];
+          if (!demoClient) return;
+          document.getElementById('loginEmail').value = demoClient.contact_email;
+          document.getElementById('loginPin').value = demoClient.portal_pin;
+        }
+        this.handleLogin(new Event('submit'));
+      },
+
+      handleLogin(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+        const pin = document.getElementById('loginPin').value.trim();
+
+        // Se o link for exclusivo de um cliente, bloqueia login de admin ou outro cliente
+        if (this.state.lockedClientId) {
+          const target = this.state.clients.find(c => c.id === this.state.lockedClientId);
+          if (!target || target.contact_email.toLowerCase() !== email || String(target.portal_pin) !== pin) {
+            this.toast('Credenciais inválidas para este portal exclusivo.', true);
+            return;
+          }
+          this.enterClientPortal(target);
+          return;
+        }
+
+        // Login Admin
+        if (email === this.ADMIN_ACCOUNT.email && pin === this.ADMIN_ACCOUNT.pin) {
+          this.state.session = { role: 'admin', email, name: this.ADMIN_ACCOUNT.name };
+          document.getElementById('landingScreen').classList.add('hidden');
+          document.getElementById('clientShell').classList.add('hidden');
+          document.getElementById('adminShell').classList.remove('hidden');
+          document.getElementById('adminShell').classList.add('flex');
+          document.getElementById('adminSidebarEmail').textContent = email;
+          this.renderAdminAll();
+          this.toast('Sessão administrativa iniciada.');
+          return;
+        }
+
+        // Login Cliente
+        const client = this.state.clients.find(c => c.contact_email.toLowerCase() === email && String(c.portal_pin) === pin);
+        if (client) {
+          this.enterClientPortal(client);
+          return;
+        }
+
+        this.toast('E-mail ou PIN incorretos.', true);
+      },
+
+      enterClientPortal(client) {
+        this.state.session = { role: 'client', clientId: client.id, email: client.contact_email };
+        document.getElementById('landingScreen').classList.add('hidden');
+        document.getElementById('adminShell').classList.add('hidden');
+        document.getElementById('clientShell').classList.remove('hidden');
+        document.getElementById('clientShell').classList.add('flex');
+        document.getElementById('clientHeaderEmail').textContent = client.contact_email;
+        this.closeClientForm();
+        this.renderClientPortal();
+      },
+
+      logout() {
+        this.state.session = null;
+        document.getElementById('adminShell').classList.add('hidden');
+        document.getElementById('clientShell').classList.add('hidden');
+        document.getElementById('landingScreen').classList.remove('hidden');
+        document.getElementById('loginPin').value = '';
+      },
+
+      // =====================================================================
+      // CÁLCULO DE MÉTRICAS DOS 7 MÓDULOS
+      // =====================================================================
+      computeClientMetrics(client) {
+        const answers = client.answers || {};
+        const dk = client.dont_know || {};
+        let totalFields = 0;
+        let answered = 0;
+        let dontKnowCount = 0;
+        const perModulePct = [];
+
+        this.FORM_MODULES.forEach(mod => {
+          let modTotal = mod.fields.length;
+          let modDone = 0;
+          mod.fields.forEach(f => {
+            totalFields++;
+            const val = String(answers[f.key] || '').trim();
+            if (dk[f.key]) {
+              dontKnowCount++;
+              modDone++;
+            } else if (val.length > 0) {
+              answered++;
+              modDone++;
+            }
+          });
+          perModulePct.push(Math.round((modDone / modTotal) * 100));
+        });
+
+        const pending = Math.max(0, totalFields - answered - dontKnowCount);
+        const completionPct = Math.round(((answered + dontKnowCount) / totalFields) * 100);
+        return { totalFields, answered, dontKnowCount, pending, completionPct, perModulePct };
+      },
+
+      // =====================================================================
+      // PORTAL DO CLIENTE & FORMULÁRIO 7 ETAPAS
+      // =====================================================================
+      getActiveClient() {
+        if (!this.state.session || !this.state.session.clientId) return null;
+        return this.state.clients.find(c => c.id === this.state.session.clientId) || null;
+      },
+
+      renderClientPortal() {
+        const client = this.getActiveClient();
+        if (!client) return;
+        const m = this.computeClientMetrics(client);
+
+        document.getElementById('clientPortalMeta').textContent = `${client.id} • ${client.segment.toUpperCase()}`;
+        document.getElementById('clientCompanyTitle').textContent = client.company_name;
+        document.getElementById('clientKpiProgress').textContent = `${m.completionPct}%`;
+        document.getElementById('clientKpiStatusSub').textContent = client.intake_status === 'ENVIADO'
+          ? 'Diagnóstico enviado e protocolado'
+          : `Etapa atual: ${client.current_step} de 7`;
+        document.getElementById('clientKpiProtocol').textContent = client.protocol;
+        document.getElementById('clientKpiFolderSub').textContent = client.folder_name;
+
+        const pdfBtn = document.getElementById('btnClientPreviewPdf');
+        if (client.pdf_released) {
+          document.getElementById('clientKpiPdfState').textContent = 'Liberado';
+          document.getElementById('clientKpiPdfSub').textContent = 'Pronto para visualização e download';
+          pdfBtn.classList.remove('hidden');
+        } else {
+          document.getElementById('clientKpiPdfState').textContent = 'Em Revisão';
+          document.getElementById('clientKpiPdfSub').textContent = 'Será liberado após aprovação NOMEE';
+          pdfBtn.classList.add('hidden');
+        }
+
+        const startBtn = document.getElementById('btnClientStartForm');
+        startBtn.textContent = client.intake_status === 'ENVIADO'
+          ? 'Revisar Respostas Enviadas'
+          : (m.completionPct > 0 ? `Continuar Diagnóstico (${m.completionPct}%)` : 'Iniciar Diagnóstico (7 Etapas)');
+
+        const cloudBadge = document.getElementById('clientCloudStatus');
+        if (cloudBadge) {
+          cloudBadge.textContent = this.state.cloudConnected ? 'Supabase Sincronizado' : 'Salvo Localmente';
+        }
+
+        this.renderClientCharts(m);
+      },
+
+      renderClientCharts(m) {
+        if (this.charts.clientRadar) this.charts.clientRadar.destroy();
+        const rCtx = document.getElementById('clientRadarChart').getContext('2d');
+        this.charts.clientRadar = new Chart(rCtx, {
+          type: 'radar',
+          data: {
+            labels: this.FORM_MODULES.map(mod => mod.short),
+            datasets: [{
+              label: 'Cobertura (%)',
+              data: m.perModulePct,
+              backgroundColor: 'rgba(185, 28, 28, 0.22)',
+              borderColor: '#DC2626',
+              pointBackgroundColor: '#FFFFFF',
+              pointBorderColor: '#DC2626',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0, max: 100,
+                ticks: { display: false, stepSize: 25 },
+                grid: { color: 'rgba(255,255,255,0.08)' },
+                angleLines: { color: 'rgba(255,255,255,0.08)' },
+                pointLabels: { color: '#D4D4D8', font: { size: 11 } }
+              }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        if (this.charts.clientQuality) this.charts.clientQuality.destroy();
+        const qCtx = document.getElementById('clientQualityChart').getContext('2d');
+        this.charts.clientQuality = new Chart(qCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Respondidos', 'Marcados "Não sei"', 'Pendentes'],
+            datasets: [{
+              data: [m.answered, m.dontKnowCount, m.pending],
+              backgroundColor: ['#E4E4E7', '#B91C1C', '#27272A'],
+              borderColor: '#0A0B0E',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#A1A1AA', font: { size: 11 }, boxWidth: 10 } }
+            }
+          }
+        });
+      },
+
+      openClientForm() {
+        document.getElementById('clientSummarySection').classList.add('hidden');
+        document.getElementById('clientFormSection').classList.remove('hidden');
+        this.renderFormStep();
+      },
+
+      closeClientForm() {
+        document.getElementById('clientFormSection').classList.add('hidden');
+        document.getElementById('clientSummarySection').classList.remove('hidden');
+        this.renderClientPortal();
+      },
+
+      renderFormStep() {
+        const client = this.getActiveClient();
+        if (!client) return;
+        const step = Math.min(7, Math.max(1, client.current_step || 1));
+        const mod = this.FORM_MODULES[step - 1];
+        const pct = Math.round((step / 7) * 100);
+
+        document.getElementById('formStepTitle').textContent = mod.title;
+        document.getElementById('formProgressPct').textContent = `${pct}%`;
+        document.getElementById('formProgressBar').style.width = `${pct}%`;
+
+        document.getElementById('formStepPills').innerHTML = this.FORM_MODULES.map(m => `
+          <button type="button" onclick="App.jumpToFormStep(${m.step})"
+            class="px-3 py-1 rounded-lg text-[11px] font-medium transition ${m.step === step ? 'bg-white text-black font-semibold' : 'bg-white/[0.05] text-zinc-400 hover:text-white'}">
+            ${m.step}. ${m.short}
+          </button>
+        `).join('');
+
+        // Pré-preenche dados básicos no módulo 1 se vazios
+        if (step === 1) {
+          if (!client.answers.m1_company) client.answers.m1_company = client.company_name;
+          if (!client.answers.m1_segment) client.answers.m1_segment = client.segment;
+          if (!client.answers.m1_location) client.answers.m1_location = client.location;
+          if (!client.answers.m1_contact) client.answers.m1_contact = client.contact_name;
+          if (!client.answers.m1_cnpj && client.cnpj) client.answers.m1_cnpj = client.cnpj;
+        }
+
+        const container = document.getElementById('formFieldsContainer');
+        container.innerHTML = mod.fields.map(f => {
+          const isDk = Boolean(client.dont_know && client.dont_know[f.key]);
+          const val = (client.answers && client.answers[f.key]) ? String(client.answers[f.key]) : '';
+          const escapedVal = val.replace(/"/g, '&quot;');
+          const dkToggle = f.optionalDk ? `
+            <label class="inline-flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-white cursor-pointer select-none">
+              <input type="checkbox" ${isDk ? 'checked' : ''} onchange="App.toggleDontKnow('${f.key}', this.checked)" class="w-3.5 h-3.5 accent-red-600">
+              <span>Não sei</span>
+            </label>
+          ` : '';
+
+          const fieldInput = f.type === 'textarea'
+            ? `<textarea rows="3" ${isDk ? 'disabled' : ''} oninput="App.updateFormAnswer('${f.key}', this.value)" class="input-field" placeholder="${isDk ? 'Marcado como Não sei' : 'Digite sua resposta...'}">${val}</textarea>`
+            : `<input type="text" value="${escapedVal}" ${isDk ? 'disabled' : ''} oninput="App.updateFormAnswer('${f.key}', this.value)" class="input-field" placeholder="${isDk ? 'Marcado como Não sei' : 'Digite sua resposta...'}">`;
+
+          return `
+            <div class="${f.type === 'textarea' ? 'md:col-span-2' : ''}">
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[11px] font-medium text-zinc-300">${f.label}${f.required ? ' *' : ''}</label>
+                ${dkToggle}
+              </div>
+              ${fieldInput}
+            </div>
+          `;
+        }).join('');
+
+        // Extras da Etapa 7
+        const extras = document.getElementById('formStep7Extras');
+        extras.classList.toggle('hidden', step !== 7);
+        if (step === 7) {
+          document.getElementById('formLgpdCheck').checked = Boolean(client.lgpd_accepted);
+          this.renderClientAttachmentsList(client);
+        }
+
+        document.getElementById('btnFormPrev').style.visibility = step > 1 ? 'visible' : 'hidden';
+        document.getElementById('btnFormNext').classList.toggle('hidden', step === 7);
+        document.getElementById('btnFormSubmit').classList.toggle('hidden', step !== 7);
+      },
+
+      updateFormAnswer(key, value) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.answers[key] = value;
+
+        // Mantém nome da pasta sincronizado se o cliente atualizar nome ou empresa
+        if (key === 'm1_company' && value.trim()) client.company_name = value.trim();
+        if (key === 'm1_contact' && value.trim()) client.contact_name = value.trim();
+        if (key === 'm1_segment' && value.trim()) client.segment = value.trim();
+        if (key === 'm1_location' && value.trim()) client.location = value.trim();
+        if (key === 'm1_cnpj') client.cnpj = value.trim();
+        client.folder_name = `${client.contact_name} - ${client.company_name}`;
+
+        this.scheduleAutoSave(client);
+      },
+
+      toggleDontKnow(key, checked) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.dont_know[key] = checked;
+        if (checked) client.answers[key] = '';
+        this.renderFormStep();
+        this.scheduleAutoSave(client);
+      },
+
+      handleLgpdToggle(checked) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.lgpd_accepted = checked;
+        client.lgpd_accepted_at = checked ? new Date().toISOString() : '';
+        this.scheduleAutoSave(client);
+      },
+
+      handleClientAttachment(e) {
+        const file = e.target.files && e.target.files[0];
+        const client = this.getActiveClient();
+        if (!file || !client) return;
+        if (file.size > 5 * 1024 * 1024) {
+          this.toast('Arquivo excede 5 MB.', true);
+          return;
+        }
+        client.attachments = client.attachments || [];
+        client.attachments.push({
+          name: file.name,
+          sizeKb: Math.max(1, Math.round(file.size / 1024)),
+          addedAt: new Date().toISOString()
+        });
+        e.target.value = '';
+        this.renderClientAttachmentsList(client);
+        this.scheduleAutoSave(client);
+        this.toast(`Anexo "${file.name}" registrado.`);
+      },
+
+      renderClientAttachmentsList(client) {
+        const box = document.getElementById('formAttachmentsList');
+        const list = client.attachments || [];
+        box.innerHTML = list.length
+          ? list.map((a, idx) => `
+              <div class="flex items-center justify-between px-3 py-1.5 rounded bg-carbon border border-white/[0.06]">
+                <span>${a.name} <span class="text-zinc-500">(${a.sizeKb} KB)</span></span>
+                <button type="button" onclick="App.removeClientAttachment(${idx})" class="text-red-300 hover:text-white text-[11px]">Remover</button>
+              </div>
+            `).join('')
+          : '<div class="text-[11px] text-zinc-500">Nenhum anexo enviado até o momento.</div>';
+      },
+
+      removeClientAttachment(idx) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.attachments.splice(idx, 1);
+        this.renderClientAttachmentsList(client);
+        this.scheduleAutoSave(client);
+      },
+
+      scheduleAutoSave(client) {
+        const ind = document.getElementById('formSaveIndicator');
+        if (ind) ind.textContent = 'Salvando...';
+        this.saveLocalCache();
+        clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(async () => {
+          const ok = await this.upsertClientToSupabase(client);
+          const hhmmss = new Date().toLocaleTimeString('pt-BR');
+          if (ind) ind.textContent = ok ? `Salvo na nuvem às ${hhmmss}` : `Salvo localmente às ${hhmmss}`;
+        }, 550);
+      },
+
+      jumpToFormStep(step) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.current_step = step;
+        this.renderFormStep();
+        this.scheduleAutoSave(client);
+      },
+
+      changeFormStep(delta) {
+        const client = this.getActiveClient();
+        if (!client) return;
+        client.current_step = Math.min(7, Math.max(1, (client.current_step || 1) + delta));
+        this.renderFormStep();
+        this.scheduleAutoSave(client);
+      },
+
+      async submitClientForm() {
+        const client = this.getActiveClient();
+        if (!client) return;
+        if (!client.lgpd_accepted) {
+          this.toast('Aceite o Termo de Privacidade e Consentimento LGPD (24 meses) para concluir.', true);
+          return;
+        }
+        client.intake_status = 'ENVIADO';
+        client.current_step = 7;
+        client.submitted_at = new Date().toISOString();
+        const ok = await this.upsertClientToSupabase(client);
+        this.toast(ok
+          ? `Diagnóstico enviado e salvo no Supabase! Protocolo ${client.protocol}.`
+          : `Diagnóstico salvo localmente! Protocolo ${client.protocol}.`
+        );
+        this.closeClientForm();
+      },
+
+      // =====================================================================
+      // PAINEL ADMIN — DASHBOARD POWER BI + CLIENTES + RELATÓRIOS
+      // =====================================================================
+      switchAdminTab(tab) {
+        this.state.activeAdminTab = tab;
+        ['dashboard', 'clients', 'reports'].forEach(t => {
+          document.getElementById('tab_' + t).classList.toggle('hidden', t !== tab);
+          document.getElementById('navBtn_' + t).classList.toggle('active', t === tab);
+        });
+        const titles = {
+          dashboard: ['Dashboard Power BI — Carteira NOMEE', 'Filtros cruzados em tempo real sobre os diagnósticos sincronizados no Supabase.'],
+          clients: ['Clientes & Pastas Individuais', 'Cadastre clientes, copie links exclusivos de acesso e gerencie exclusões.'],
+          reports: ['Relatórios PDF — NOMEE Business Profile', 'Pré-visualize, baixe o PDF oficial em A4 e libere no portal do cliente.']
+        };
+        document.getElementById('pageTitle').textContent = titles[tab][0];
+        document.getElementById('pageSubtitle').textContent = titles[tab][1];
+        if (tab === 'dashboard') this.applyBiFilters();
+      },
+
+      renderAdminAll() {
+        document.getElementById('navCountClients').textContent = this.state.clients.length;
+        document.getElementById('navCountReports').textContent = this.state.clients.length;
+        this.populateBiSlicers();
+        this.applyBiFilters();
+        this.renderAdminClientsTable();
+        this.renderAdminReportsTable();
+      },
+
+      populateBiSlicers() {
+        const cSel = document.getElementById('slicerClient');
+        const prevC = cSel.value;
+        cSel.innerHTML = '<option value="">Todas as Empresas</option>' +
+          this.state.clients.map(c => `<option value="${c.id}">${c.folder_name}</option>`).join('');
+        cSel.value = prevC;
+
+        const segments = [...new Set(this.state.clients.map(c => c.segment).filter(Boolean))];
+        const sSel = document.getElementById('slicerSegment');
+        const prevS = sSel.value;
+        sSel.innerHTML = '<option value="">Todos os Segmentos</option>' +
+          segments.map(s => `<option value="${s}">${s}</option>`).join('');
+        sSel.value = prevS;
+      },
+
+      resetBiFilters() {
+        document.getElementById('slicerClient').value = '';
+        document.getElementById('slicerSegment').value = '';
+        document.getElementById('slicerStatus').value = '';
+        document.getElementById('slicerPdf').value = '';
+        document.getElementById('slicerSearch').value = '';
+        this.applyBiFilters();
+      },
+
+      applyBiFilters() {
+        const fc = document.getElementById('slicerClient').value;
+        const fs = document.getElementById('slicerSegment').value;
+        const fst = document.getElementById('slicerStatus').value;
+        const fp = document.getElementById('slicerPdf').value;
+        const fq = document.getElementById('slicerSearch').value.trim().toLowerCase();
+
+        const filtered = this.state.clients.filter(c => {
+          if (fc && c.id !== fc) return false;
+          if (fs && c.segment !== fs) return false;
+          if (fst && c.intake_status !== fst) return false;
+          if (fp === 'released' && !c.pdf_released) return false;
+          if (fp === 'pending' && c.pdf_released) return false;
+          if (fq && !`${c.folder_name} ${c.protocol} ${c.segment} ${c.contact_email}`.toLowerCase().includes(fq)) return false;
+          return true;
+        });
+
+        const hasFilter = Boolean(fc || fs || fst || fp || fq);
+        const chip = document.getElementById('activeFilterChip');
+        chip.classList.toggle('hidden', !hasFilter);
+        if (hasFilter) {
+          document.getElementById('activeFilterLabel').textContent = `Recorte: ${filtered.length} de ${this.state.clients.length} cliente(s)`;
+        }
+
+        // KPIs
+        const total = filtered.length;
+        const submitted = filtered.filter(c => c.intake_status === 'ENVIADO').length;
+        const released = filtered.filter(c => c.pdf_released).length;
+        const metricsList = filtered.map(c => ({ client: c, m: this.computeClientMetrics(c) }));
+        const avgPct = total ? Math.round(metricsList.reduce((acc, x) => acc + x.m.completionPct, 0) / total) : 0;
+
+        document.getElementById('kpiTotalClients').textContent = total;
+        document.getElementById('kpiSubmitted').textContent = submitted;
+        document.getElementById('kpiSubmittedPct').textContent = `${total ? Math.round((submitted / total) * 100) : 0}% da carteira`;
+        document.getElementById('kpiAvgCompletion').textContent = `${avgPct}%`;
+        document.getElementById('kpiReleased').textContent = released;
+        document.getElementById('kpiPendingSub').textContent = `${total - released} aguardando liberação`;
+
+        this.renderBiCharts(metricsList);
+      },
+
+      renderBiCharts(metricsList) {
+        // 1. Radar dos 7 módulos
+        const avgPerMod = this.FORM_MODULES.map((_, idx) => {
+          if (!metricsList.length) return 0;
+          return Math.round(metricsList.reduce((sum, x) => sum + x.m.perModulePct[idx], 0) / metricsList.length);
+        });
+
+        if (this.charts.biRadar) this.charts.biRadar.destroy();
+        this.charts.biRadar = new Chart(document.getElementById('biRadarChart').getContext('2d'), {
+          type: 'radar',
+          data: {
+            labels: this.FORM_MODULES.map(m => m.short),
+            datasets: [{
+              label: 'Maturidade (%)',
+              data: avgPerMod,
+              backgroundColor: 'rgba(185, 28, 28, 0.22)',
+              borderColor: '#DC2626',
+              pointBackgroundColor: '#FFFFFF',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0, max: 100,
+                ticks: { display: false, stepSize: 25 },
+                grid: { color: 'rgba(255,255,255,0.08)' },
+                angleLines: { color: 'rgba(255,255,255,0.08)' },
+                pointLabels: { color: '#D4D4D8', font: { size: 11 } }
+              }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        // 2. Ranking de Preenchimento (clicável para drill-down)
+        if (this.charts.biRanking) this.charts.biRanking.destroy();
+        this.charts.biRanking = new Chart(document.getElementById('biRankingChart').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: metricsList.map(x => x.client.company_name.slice(0, 22)),
+            datasets: [{
+              label: 'Conclusão (%)',
+              data: metricsList.map(x => x.m.completionPct),
+              backgroundColor: metricsList.map(x => x.client.intake_status === 'ENVIADO' ? '#E4E4E7' : '#991B1B'),
+              borderRadius: 6,
+              maxBarThickness: 28
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: (_, elements) => {
+              if (!elements.length) return;
+              const clicked = metricsList[elements[0].index];
+              if (clicked) {
+                document.getElementById('slicerClient').value = clicked.client.id;
+                this.applyBiFilters();
+              }
+            },
+            scales: {
+              x: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#A1A1AA' } },
+              y: { grid: { display: false }, ticks: { color: '#E4E4E7', font: { size: 11 } } }
+            },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        // 3. Qualidade dos Dados Empilhada
+        if (this.charts.biQuality) this.charts.biQuality.destroy();
+        this.charts.biQuality = new Chart(document.getElementById('biQualityChart').getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: metricsList.map(x => x.client.contact_name.split(' ')[0] + ' (' + x.client.id + ')'),
+            datasets: [
+              { label: 'Respondidos', data: metricsList.map(x => x.m.answered), backgroundColor: '#E4E4E7', borderRadius: 4 },
+              { label: 'Não sei', data: metricsList.map(x => x.m.dontKnowCount), backgroundColor: '#B91C1C', borderRadius: 4 },
+              { label: 'Pendentes', data: metricsList.map(x => x.m.pending), backgroundColor: '#27272A', borderRadius: 4 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true, grid: { display: false }, ticks: { color: '#A1A1AA' } },
+              y: { stacked: true, grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#A1A1AA' } }
+            },
+            plugins: { legend: { labels: { color: '#D4D4D8', boxWidth: 10, font: { size: 11 } } } }
+          }
+        });
+
+        // 4. Funil de Governança (clicável)
+        const cDraft = metricsList.filter(x => x.client.intake_status !== 'ENVIADO').length;
+        const cWaiting = metricsList.filter(x => x.client.intake_status === 'ENVIADO' && !x.client.pdf_released).length;
+        const cReleased = metricsList.filter(x => x.client.pdf_released).length;
+
+        if (this.charts.biFunnel) this.charts.biFunnel.destroy();
+        this.charts.biFunnel = new Chart(document.getElementById('biFunnelChart').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Em Rascunho', 'Enviado (Aguard. PDF)', 'PDF Liberado'],
+            datasets: [{
+              data: [cDraft, cWaiting, cReleased],
+              backgroundColor: ['#3F3F46', '#B91C1C', '#E4E4E7'],
+              borderColor: '#0A0B0E',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '66%',
+            onClick: (_, elements) => {
+              if (!elements.length) return;
+              const idx = elements[0].index;
+              if (idx === 0) { document.getElementById('slicerStatus').value = 'RASCUNHO'; document.getElementById('slicerPdf').value = ''; }
+              if (idx === 1) { document.getElementById('slicerStatus').value = 'ENVIADO'; document.getElementById('slicerPdf').value = 'pending'; }
+              if (idx === 2) { document.getElementById('slicerStatus').value = ''; document.getElementById('slicerPdf').value = 'released'; }
+              this.applyBiFilters();
+            },
+            plugins: { legend: { position: 'bottom', labels: { color: '#A1A1AA', boxWidth: 10, font: { size: 11 } } } }
+          }
+        });
+      },
+
+      renderAdminClientsTable() {
+        const tbody = document.getElementById('adminClientsTableBody');
+        if (!this.state.clients.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-zinc-500">Nenhum cliente cadastrado. Clique em "+ Novo Cliente".</td></tr>';
+          return;
+        }
+        tbody.innerHTML = this.state.clients.map(c => {
+          const m = this.computeClientMetrics(c);
+          return `
+            <tr class="hover:bg-white/[0.02]">
+              <td class="py-3.5 px-4">
+                <div class="font-semibold text-white">${c.folder_name}</div>
+                <div class="text-[11px] text-zinc-400">${c.id} • ${c.segment} • ${c.location || 'Brasil'}</div>
+              </td>
+              <td class="py-3.5 px-4">
+                <div class="text-zinc-200">${c.contact_email}</div>
+                <div class="text-[11px] text-zinc-500">PIN: ${c.portal_pin}</div>
+              </td>
+              <td class="py-3.5 px-4">
+                <div class="font-semibold text-white">${m.completionPct}%</div>
+                <div class="w-24 h-1.5 rounded-full bg-white/10 mt-1 overflow-hidden">
+                  <div class="h-full bg-white" style="width:${m.completionPct}%"></div>
+                </div>
+              </td>
+              <td class="py-3.5 px-4">
+                <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.intake_status === 'ENVIADO' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-white/[0.06] text-zinc-300'}">${c.intake_status}</span>
+                <div class="text-[11px] mt-1 ${c.pdf_released ? 'text-emerald-400' : 'text-zinc-500'}">${c.pdf_released ? 'PDF Liberado' : 'PDF Bloqueado'}</div>
+              </td>
+              <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                <button onclick="App.copyClientPortalLink('${c.id}')" class="btn-secondary px-2.5 py-1.5 text-[11px]">Copiar Link Portal</button>
+                <button onclick="App.openPdfPreview('${c.id}')" class="btn-secondary px-2.5 py-1.5 text-[11px]">Prévia PDF</button>
+                <button onclick="App.requestDeleteClient('${c.id}')" class="btn-danger-ghost px-2.5 py-1.5 text-[11px]">Excluir</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      },
+
+      renderAdminReportsTable() {
+        const tbody = document.getElementById('adminReportsTableBody');
+        tbody.innerHTML = this.state.clients.map(c => {
+          const m = this.computeClientMetrics(c);
+          return `
+            <tr class="hover:bg-white/[0.02]">
+              <td class="py-3.5 px-4 font-mono text-zinc-300">${c.protocol}</td>
+              <td class="py-3.5 px-4">
+                <div class="font-semibold text-white">${c.folder_name}</div>
+                <div class="text-[11px] text-zinc-500">${c.segment}</div>
+              </td>
+              <td class="py-3.5 px-4 text-zinc-200">${m.completionPct}% (${c.intake_status})</td>
+              <td class="py-3.5 px-4">${c.lgpd_accepted ? '<span class="text-emerald-400">Aceito (24m)</span>' : '<span class="text-zinc-500">Pendente</span>'}</td>
+              <td class="py-3.5 px-4">
+                <button onclick="App.togglePdfRelease('${c.id}')" class="px-2.5 py-1 rounded-lg text-[11px] font-medium ${c.pdf_released ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-crimson-950/70 text-red-200 border border-crimson-700/40'}">
+                  ${c.pdf_released ? 'Liberado (Revogar)' : 'Aprovar & Liberar'}
+                </button>
+              </td>
+              <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                <button onclick="App.openPdfPreview('${c.id}')" class="btn-primary px-3 py-1.5 text-[11px]">Pré-visualizar &amp; Baixar PDF</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      },
+
+      async createClient(e) {
+        e.preventDefault();
+        const contactName = document.getElementById('ncContactName').value.trim();
+        const companyName = document.getElementById('ncCompanyName').value.trim();
+        const email = document.getElementById('ncEmail').value.trim().toLowerCase();
+        const pin = document.getElementById('ncPin').value.trim() || '123456';
+        const segment = document.getElementById('ncSegment').value.trim();
+        const location = document.getElementById('ncLocation').value.trim();
+
+        const nextSeq = this.state.clients.reduce((max, c) => {
+          const n = parseInt(String(c.id).replace(/\D/g, ''), 10) || 0;
+          return Math.max(max, n);
+        }, 0) + 1;
+        const padded = String(nextSeq).padStart(4, '0');
+
+        const newClient = {
+          id: `NOM-${padded}`,
+          folder_name: `${contactName} - ${companyName}`,
+          company_name: companyName,
+          contact_name: contactName,
+          contact_role: 'Responsável',
+          contact_email: email,
+          portal_pin: pin,
+          segment,
+          location,
+          cnpj: '',
+          protocol: `PRT-2026-${padded}`,
+          intake_status: 'RASCUNHO',
+          current_step: 1,
+          pdf_released: false,
+          lgpd_accepted: false,
+          lgpd_accepted_at: '',
+          submitted_at: '',
+          answers: {
+            m1_company: companyName,
+            m1_contact: contactName,
+            m1_segment: segment,
+            m1_location: location
+          },
+          dont_know: {},
+          attachments: []
+        };
+
+        this.state.clients.unshift(newClient);
+        const ok = await this.upsertClientToSupabase(newClient);
+        this.closeModal('newClientModal');
+        e.target.reset();
+        document.getElementById('ncPin').value = '123456';
+        this.renderAdminAll();
+        this.toast(ok ? `Cliente ${newClient.folder_name} salvo no Supabase!` : `Cliente salvo localmente (crie a tabela no Supabase).`);
+      },
+
+      requestDeleteClient(clientId) {
+        const client = this.state.clients.find(c => c.id === clientId);
+        if (!client) return;
+        this.state.deletingClientId = clientId;
+        document.getElementById('deleteModalText').innerHTML =
+          `Deseja excluir permanentemente a pasta <strong>${client.folder_name}</strong> (${client.id})?`;
+        this.openModal('deleteClientModal');
+      },
+
+      async confirmDeleteClient() {
+        const id = this.state.deletingClientId;
+        if (!id) return;
+        this.state.clients = this.state.clients.filter(c => c.id !== id);
+        await this.deleteClientFromSupabase(id);
+        this.state.deletingClientId = null;
+        this.closeModal('deleteClientModal');
+        this.renderAdminAll();
+        this.toast('Cliente excluído com sucesso.');
+      },
+
+      async togglePdfRelease(clientId) {
+        const client = this.state.clients.find(c => c.id === clientId);
+        if (!client) return;
+        client.pdf_released = !client.pdf_released;
+        await this.upsertClientToSupabase(client);
+        this.renderAdminAll();
+        this.toast(client.pdf_released ? 'PDF liberado no Portal do Cliente!' : 'Liberação de PDF revogada.');
+      },
+
+      copyClientPortalLink(clientId) {
+        const base = window.location.href.split('?')[0];
+        const url = `${base}?portal=cliente&c=${encodeURIComponent(clientId)}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => this.toast(`Link exclusivo copiado: ${clientId}`));
+        } else {
+          this.toast(`Link: ${url}`);
+        }
+      },
+
+      // =====================================================================
+      // PRÉ-VISUALIZAÇÃO & DOWNLOAD REAL DE PDF (jsPDF + AutoTable A4)
+      // =====================================================================
+      openPdfPreview(clientId) {
+        const client = this.state.clients.find(c => c.id === clientId);
+        if (!client) return;
+        this.state.previewClientId = clientId;
+        const m = this.computeClientMetrics(client);
+
+        document.getElementById('pdfPreviewSubtitle').textContent = `${client.folder_name} • ${client.protocol}`;
+
+        const missing = [];
+        const sectionsHtml = this.FORM_MODULES.map(mod => {
+          const rows = mod.fields.map(f => {
+            const isDk = Boolean(client.dont_know && client.dont_know[f.key]);
+            const val = isDk
+              ? 'Não sabe / Não possui o dado'
+              : ((client.answers && String(client.answers[f.key] || '').trim()) || 'Não informado');
+            if (isDk || val === 'Não informado') missing.push(`${mod.short}: ${f.label}`);
+            return `
+              <tr style="border-bottom:1px solid #E4E4E7;">
+                <td style="padding:8px 10px; width:38%; font-weight:600; color:#27272A; font-size:12px;">${f.label}</td>
+                <td style="padding:8px 10px; color:${(isDk || val === 'Não informado') ? '#991B1B' : '#18181B'}; font-size:12px;">${val}</td>
+              </tr>
+            `;
+          }).join('');
+          return `
+            <div style="margin-bottom:20px;">
+              <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#7F121B; border-bottom:2px solid #18181B; padding-bottom:4px; margin-bottom:8px;">
+                ${mod.title}
+              </div>
+              <table style="width:100%; border-collapse:collapse;"><tbody>${rows}</tbody></table>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('pdfPreviewBody').innerHTML = `
+          <div style="max-width:780px; margin:0 auto; background:#FFFFFF; padding:32px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+            <div style="background:#0A0B0E; color:#FFFFFF; padding:22px 24px; border-radius:8px; border-bottom:3px solid #B91C1C; margin-bottom:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="font-size:11px; letter-spacing:0.22em; color:#A1A1AA; font-weight:700;">NOMEE COMPANY • NOMEE EDGE</div>
+                <div style="font-size:20px; font-weight:800; margin-top:4px;">NOMEE BUSINESS PROFILE</div>
+                <div style="font-size:12px; color:#D4D4D8; margin-top:2px;">${client.folder_name}</div>
+              </div>
+              <div style="text-align:right; font-size:11px; color:#D4D4D8;">
+                <div><strong>Protocolo:</strong> ${client.protocol}</div>
+                <div><strong>ID:</strong> ${client.id}</div>
+                <div><strong>Conclusão:</strong> ${m.completionPct}%</div>
+              </div>
+            </div>
+
+            ${sectionsHtml}
+
+            <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:14px 16px; margin-top:16px;">
+              <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#991B1B; margin-bottom:6px;">
+                Pontos Ausentes ou Marcados como "Não sei" para Validação (${missing.length})
+              </div>
+              <div style="font-size:11.5px; color:#7F1D1D; line-height:1.5;">
+                ${missing.length ? missing.join(' • ') : 'Todos os campos foram declarados.'}
+              </div>
+            </div>
+
+            <div style="margin-top:20px; padding-top:12px; border-top:1px solid #E4E4E7; font-size:10.5px; color:#52525B; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <span>Documento de organização de dados declarados • LGPD (Retenção 24 meses)</span>
+              <span>Gerado em ${new Date().toLocaleString('pt-BR')}</span>
+            </div>
+          </div>
+        `;
+
+        this.openModal('pdfPreviewModal');
+      },
+
+      downloadOfficialPdf() {
+        const client = this.state.clients.find(c => c.id === this.state.previewClientId);
+        if (!client) return;
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          this.toast('Biblioteca jsPDF ainda carregando. Tente novamente em 1 segundo.', true);
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const m = this.computeClientMetrics(client);
+
+        // Cabeçalho Corporativo Obsidian + Linha Vermelha
+        doc.setFillColor(10, 11, 14);
+        doc.rect(0, 0, 210, 34, 'F');
+        doc.setFillColor(185, 28, 28);
+        doc.rect(0, 34, 210, 1.5, 'F');
+
+        doc.setTextColor(180, 180, 190);
+        doc.setFontSize(8);
+        doc.text('NOMEE COMPANY  •  NOMEE EDGE — COMPETITIVE ADVANTAGE & VALUE CAPTURE', 14, 11);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOMEE BUSINESS PROFILE', 14, 20);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(client.folder_name, 14, 27);
+
+        doc.setFontSize(8.5);
+        doc.text(`Protocolo: ${client.protocol}  |  ID: ${client.id}  |  Conclusão: ${m.completionPct}%`, 196, 20, { align: 'right' });
+        doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 196, 27, { align: 'right' });
+
+        let cursorY = 43;
+        const missingItems = [];
+
+        this.FORM_MODULES.forEach(mod => {
+          const rows = mod.fields.map(f => {
+            const isDk = Boolean(client.dont_know && client.dont_know[f.key]);
+            const val = isDk
+              ? 'Não sabe / Não possui o dado'
+              : ((client.answers && String(client.answers[f.key] || '').trim()) || 'Não informado');
+            if (isDk || val === 'Não informado') missingItems.push(`${mod.short} — ${f.label}`);
+            return [f.label, val];
+          });
+
+          doc.autoTable({
+            startY: cursorY,
+            head: [[mod.title, 'Informação Declarada']],
+            body: rows,
+            theme: 'grid',
+            margin: { left: 14, right: 14 },
+            headStyles: { fillColor: [20, 23, 30], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
+            bodyStyles: { fontSize: 8.5, textColor: [24, 24, 27], cellPadding: 2.8 },
+            columnStyles: { 0: { cellWidth: 66, fontStyle: 'bold', fillColor: [248, 250, 252] } }
+          });
+
+          cursorY = doc.lastAutoTable.finalY + 6;
+        });
+
+        // Seção de Pontos para Validação
+        doc.autoTable({
+          startY: cursorY,
+          head: [['Pontos Ausentes / Marcados como "Não sei" para Validação']],
+          body: [[missingItems.length ? missingItems.join(' • ') : 'Todos os campos foram preenchidos.']],
+          theme: 'grid',
+          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: [127, 18, 27], textColor: [255, 255, 255], fontSize: 9 },
+          bodyStyles: { fontSize: 8.5, textColor: [80, 20, 20] }
+        });
+
+        // Rodapé em todas as páginas
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(7.5);
+          doc.setTextColor(120, 120, 130);
+          doc.text('NOMEE Company • Dados declarados pelo cliente sob Política LGPD (24 meses)', 14, 290);
+          doc.text(`Página ${i} de ${pageCount}`, 196, 290, { align: 'right' });
+        }
+
+        const safeFileName = client.folder_name
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+        doc.save(`NOMEE_BUSINESS_PROFILE_${safeFileName}.pdf`);
+        this.toast('PDF oficial baixado com sucesso!');
+      },
+
+      // =====================================================================
+      // MODAIS & TOAST
+      // =====================================================================
+      openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      },
+
+      closeModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      },
+
+      toast(msg, isError) {
+        const el = document.getElementById('toastBox');
+        el.textContent = msg;
+        el.style.borderColor = isError ? 'rgba(220,38,38,0.65)' : 'rgba(255,255,255,0.18)';
+        el.classList.remove('hidden');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => el.classList.add('hidden'), 3800);
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+  </script>
+</body>
+</html>
